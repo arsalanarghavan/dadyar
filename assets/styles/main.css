@@ -1,0 +1,339 @@
+/*
+ * Main CSS - shadcn/ui Inspired Dark Theme
+ *
+ * This stylesheet transforms Streamlit's default appearance into a premium
+ * dark-themed interface with Persian/RTL support.
+ *
+ * Author: Master's Thesis Project - Mahsa Mirzaei
+ */
+
+/* ===== CSS Variables (shadcn color palette) ===== */
+:root {
+    --background: #020617;
+    --foreground: #f8fafc;
+    --card: #0f172a;
+    --card-foreground: #f8fafc;
+    --primary: #3b82f6;
+    --primary-foreground: #f8fafc;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #475569;
+    --muted-foreground: #94a3b8;
+    --accent: #10b981;
+    --accent-foreground: #f8fafc;
+    --destructive: #ef4444;
+    --border: #334155;
+    --input: #1e293b;
+    --ring: #3b82f6;
+    --radius: 0.5rem;
+}
+
+/* ===== Global Styles ===== */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap');
+
+* {
+    font-family: 'Vazirmatn', 'Vazir', 'IRANSans', 'Tahoma', sans-serif !important;
+}
+
+/* Main app background */
+.stApp {
+    background-color: var(--background);
+    color: var(--foreground);
+    direction: rtl;
+}
+
+/* ===== Headers ===== */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--foreground) !important;
+    font-weight: 700 !important;
+    direction: rtl;
+    text-align: right;
+}
+
+h1 {
+    font-size: 2.5rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+h2 {
+    font-size: 2rem !important;
+    margin-bottom: 1rem !important;
+}
+
+h3 {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* ===== Card-like Containers ===== */
+div[data-testid="stVerticalBlock"] > div {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* ===== Buttons ===== */
+.stButton > button {
+    background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%) !important;
+    color: var(--primary-foreground) !important;
+    border: none !important;
+    border-radius: var(--radius) !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.05) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* Primary button (submit) */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+/* ===== Tabs ===== */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: var(--secondary);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: calc(var(--radius) - 0.25rem);
+    color: var(--muted-foreground);
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--foreground);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+}
+
+/* ===== Input Fields ===== */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea,
+.stSelectbox > div > div > div {
+    background-color: var(--input) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--foreground) !important;
+    direction: rtl;
+    text-align: right;
+    padding: 0.75rem !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: var(--ring) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Textarea specific */
+.stTextArea > div > div > textarea {
+    min-height: 200px !important;
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+}
+
+/* ===== Labels ===== */
+label {
+    color: var(--foreground) !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Expanders ===== */
+.streamlit-expanderHeader {
+    background-color: var(--secondary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--foreground) !important;
+    font-weight: 600 !important;
+    padding: 1rem !important;
+    direction: rtl;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: var(--input) !important;
+    border-color: var(--primary) !important;
+}
+
+.streamlit-expanderContent {
+    background-color: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    border-radius: 0 0 var(--radius) var(--radius) !important;
+    padding: 1.5rem !important;
+}
+
+/* ===== Sidebar ===== */
+[data-testid="stSidebar"] {
+    background-color: var(--card) !important;
+    border-left: 1px solid var(--border) !important;
+    padding: 2rem 1rem !important;
+}
+
+[data-testid="stSidebar"] > div {
+    direction: rtl;
+}
+
+/* ===== Messages (info, success, error, warning) ===== */
+.stAlert {
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border) !important;
+    padding: 1rem !important;
+    direction: rtl;
+    text-align: right;
+}
+
+/* Info */
+div[data-baseweb="notification"][kind="info"] {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-color: var(--primary) !important;
+    color: var(--foreground) !important;
+}
+
+/* Success */
+div[data-baseweb="notification"][kind="success"],
+.element-container .stSuccess {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border-color: var(--accent) !important;
+    color: var(--foreground) !important;
+}
+
+/* Error */
+div[data-baseweb="notification"][kind="error"],
+.element-container .stError {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    border-color: var(--destructive) !important;
+    color: var(--foreground) !important;
+}
+
+/* Warning */
+div[data-baseweb="notification"][kind="warning"],
+.element-container .stWarning {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+    border-color: #f59e0b !important;
+    color: var(--foreground) !important;
+}
+
+/* ===== Metrics ===== */
+[data-testid="stMetricValue"] {
+    color: var(--primary) !important;
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--muted-foreground) !important;
+    font-size: 0.875rem !important;
+    text-transform: uppercase !important;
+    direction: rtl;
+}
+
+/* ===== Plotly Graph Container ===== */
+.js-plotly-plot {
+    border-radius: var(--radius) !important;
+    overflow: hidden !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* ===== Form Container ===== */
+[data-testid="stForm"] {
+    background-color: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 2rem !important;
+}
+
+/* ===== Spinner ===== */
+.stSpinner > div {
+    border-color: var(--primary) !important;
+}
+
+/* ===== Markdown ===== */
+.stMarkdown {
+    direction: rtl;
+    text-align: right;
+    color: var(--foreground);
+}
+
+.stMarkdown a {
+    color: var(--primary) !important;
+    text-decoration: none !important;
+}
+
+.stMarkdown a:hover {
+    text-decoration: underline !important;
+}
+
+.stMarkdown code {
+    background-color: var(--secondary) !important;
+    color: var(--accent) !important;
+    padding: 0.2rem 0.4rem !important;
+    border-radius: 0.25rem !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+.stMarkdown pre {
+    background-color: var(--secondary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 1rem !important;
+}
+
+/* ===== Horizontal Rule ===== */
+hr {
+    border-color: var(--border) !important;
+    margin: 2rem 0 !important;
+}
+
+/* ===== Column Layout ===== */
+[data-testid="column"] {
+    direction: rtl;
+}
+
+/* ===== Progress Bar ===== */
+.stProgress > div > div {
+    background-color: var(--primary) !important;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}

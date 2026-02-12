@@ -1,0 +1,276 @@
+/*
+ * RTL (Right-to-Left) Specific Styles
+ *
+ * Additional styles for proper Persian/Arabic text display
+ *
+ * Author: Master's Thesis Project - Mahsa Mirzaei
+ */
+
+/* ===== Global RTL ===== */
+* {
+    direction: rtl;
+    text-align: right;
+}
+
+html, body {
+    direction: rtl;
+}
+
+/* ===== Text Elements ===== */
+p, span, div, label, h1, h2, h3, h4, h5, h6 {
+    direction: rtl;
+    text-align: right;
+    unicode-bidi: embed;
+}
+
+/* ===== Lists ===== */
+ul, ol {
+    padding-right: 2rem;
+    padding-left: 0;
+    direction: rtl;
+}
+
+li {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Proper Persian Text Rendering ===== */
+p, h1, h2, h3, h4, h5, h6, span, div {
+    font-feature-settings: "ss01", "ss02", "ss03";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Input Fields RTL ===== */
+input, textarea, select {
+    direction: rtl;
+    text-align: right;
+}
+
+input::placeholder,
+textarea::placeholder {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Buttons RTL ===== */
+button {
+    direction: rtl;
+}
+
+/* ===== Tables RTL ===== */
+table {
+    direction: rtl;
+}
+
+th, td {
+    text-align: right;
+}
+
+/* ===== Flexbox RTL Fix ===== */
+.stHorizontalBlock {
+    flex-direction: row-reverse;
+}
+
+/* ===== Grid RTL Fix ===== */
+[data-testid="column"] > div {
+    direction: rtl;
+}
+
+/* ===== Sidebar RTL ===== */
+[data-testid="stSidebar"] {
+    right: auto;
+    left: 0;
+}
+
+[data-testid="stSidebar"] * {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Markdown RTL ===== */
+.stMarkdown {
+    direction: rtl;
+    text-align: right;
+}
+
+.stMarkdown ul,
+.stMarkdown ol {
+    padding-right: 2rem;
+    padding-left: 0;
+}
+
+.stMarkdown li {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* ===== Number Rendering ===== */
+.persian-numbers {
+    font-variant-numeric: normal;
+    font-feature-settings: normal;
+}
+
+/* ===== Code Blocks (keep LTR for code) ===== */
+code, pre, .stCode {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* ===== Form Elements ===== */
+[data-testid="stForm"] {
+    direction: rtl;
+}
+
+[data-testid="stForm"] label {
+    text-align: right;
+}
+
+/* ===== Expander RTL ===== */
+.streamlit-expanderHeader {
+    direction: rtl;
+    text-align: right;
+}
+
+.streamlit-expanderContent {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Tabs RTL ===== */
+.stTabs {
+    direction: rtl;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    flex-direction: row-reverse;
+}
+
+/* ===== Metric RTL ===== */
+[data-testid="stMetric"] {
+    direction: rtl;
+}
+
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"] {
+    text-align: right;
+}
+
+/* ===== Alert/Message RTL ===== */
+.stAlert {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Tooltips RTL ===== */
+[data-testid="stTooltipIcon"] {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* ===== File Uploader RTL ===== */
+.stFileUploader {
+    direction: rtl;
+}
+
+/* ===== Download Button RTL ===== */
+.stDownloadButton {
+    direction: rtl;
+}
+
+/* ===== Selectbox RTL ===== */
+.stSelectbox {
+    direction: rtl;
+}
+
+.stSelectbox > div {
+    direction: rtl;
+}
+
+/* ===== Multi-select RTL ===== */
+.stMultiSelect {
+    direction: rtl;
+}
+
+/* ===== Slider RTL ===== */
+.stSlider {
+    direction: rtl;
+}
+
+/* ===== Checkbox/Radio RTL ===== */
+.stCheckbox,
+.stRadio {
+    direction: rtl;
+}
+
+.stCheckbox label,
+.stRadio label {
+    flex-direction: row-reverse;
+    padding-right: 0;
+    padding-left: 0.5rem;
+}
+
+/* ===== Date Input RTL ===== */
+.stDateInput {
+    direction: rtl;
+}
+
+/* ===== Time Input RTL ===== */
+.stTimeInput {
+    direction: rtl;
+}
+
+/* ===== Color Picker RTL ===== */
+.stColorPicker {
+    direction: rtl;
+}
+
+/* ===== Camera Input RTL ===== */
+.stCameraInput {
+    direction: rtl;
+}
+
+/* ===== Spinner RTL ===== */
+.stSpinner {
+    direction: rtl;
+}
+
+/* ===== Plotly Graph RTL Support ===== */
+.js-plotly-plot .plotly {
+    direction: ltr; /* Keep graph itself LTR for proper rendering */
+}
+
+.js-plotly-plot .plotly text {
+    font-family: 'Vazirmatn', 'Vazir', 'IRANSans',  'Tahoma', sans-serif !important;
+}
+
+/* ===== Caption RTL ===== */
+.stCaption {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ===== Header Toolbar RTL ===== */
+header[data-testid="stHeader"] {
+    direction: rtl;
+}
+
+/* ===== Block Container RTL ===== */
+.block-container {
+    direction: rtl;
+    padding-right: 1rem;
+    padding-left: 1rem;
+}
+
+/* ===== Main Content Area RTL ===== */
+.main .block-container {
+    direction: rtl;
+    max-width: 100%;
+}
+
+/* ===== Empty State RTL ===== */
+.element-container:empty {
+    direction: rtl;
+}

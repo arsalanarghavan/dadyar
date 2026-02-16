@@ -6,78 +6,84 @@ This module provides a robust wrapper around OpenAI's API with:
 - Response caching for efficiency
 - Token counting and budget management
 - Persian error messages for UI
-- Singleton pattern for API client
+
+Now extends the abstract LLMClient base class so that OpenAI and Gemini
+can be used interchangeably throughout the application.
 
 Author: Master's Thesis Project - Mahsa Mirzaei
 """
 
-import openai
-from openai import OpenAI, RateLimitError, APIError
-import tiktoken
-import time
-import hashlib
 import json
 from typing import Optional, Dict, Any, List
+
+import tiktoken
 import streamlit as st
-from pathlib import Path
+from openai import OpenAI, RateLimitError, APIError
+
+from modules.legal_engine.base_client import LLMClient
 from config.settings import get_settings
 
 
-class OpenAIClient:
+class OpenAIClient(LLMClient):
     """
-    Singleton OpenAI client with rate limiting, caching, and error handling.
+    OpenAI LLM client with rate limiting, caching, and error handling.
 
-    This class manages all interactions with OpenAI's API, optimized for
-    legal reasoning tasks in Persian language.
+    Implements the LLMClient interface for all interactions with OpenAI's API,
+    optimized for legal reasoning tasks in Persian language.
     """
 
-    _instance: Optional['OpenAIClient'] = None
-    _cache: Dict[str, Any] = {}
-    _cache_file: Path = Path("data/openai_cache.json")
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        """
+        Initialize OpenAI client.
 
-    def __new__(cls):
-        """Ensure singleton pattern - only one instance exists."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        """Initialize OpenAI client with settings."""
-        if hasattr(self, '_initialized'):
-            return
+        Args:
+            api_key: OpenAI API key (overrides settings/env)
+            model: Model name (overrides settings)
+        """
+        super().__init__()
 
         self.settings = get_settings()
-        self.client = OpenAI(api_key=self.settings.OPENAI_API_KEY)
-        self.encoding = tiktoken.encoding_for_model("gpt-4")
 
-        # Load cache from disk if exists
-        self._load_cache()
+        # Resolve API key: parameter > session_state > settings
+        resolved_key = (
+            api_key
+            or st.session_state.get("openai_api_key")
+            or self.settings.OPENAI_API_KEY
+        )
+        if not resolved_key:
+            raise ValueError(
+                "کلید API اوپن‌ای‌آی تنظیم نشده است. لطفاً در تنظیمات وارد کنید."
+            )
 
-        self._initialized = True
+        # Resolve model
+        self._model_name = (
+            model
+            or st.session_state.get("ai_model")
+            or self.settings.OPENAI_MODEL
+        )
 
-    def _load_cache(self):
-        """Load response cache from disk."""
+        self.client = OpenAI(api_key=resolved_key)
+
         try:
-            if self._cache_file.exists():
-                with open(self._cache_file, 'r', encoding='utf-8') as f:
-                    self._cache = json.load(f)
-        except Exception as e:
-            print(f"Failed to load cache: {e}")
-            self._cache = {}
+            self.encoding = tiktoken.encoding_for_model(self._model_name)
+        except KeyError:
+            self.encoding = tiktoken.encoding_for_model("gpt-4")
 
-    def _save_cache(self):
-        """Save response cache to disk."""
-        try:
-            self._cache_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self._cache_file, 'w', encoding='utf-8') as f:
-                json.dump(self._cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"Failed to save cache: {e}")
+    # ─── Properties ───────────────────────────────────────────────────
 
-    def _cache_key(self, prompt: str, **kwargs) -> str:
-        """Generate cache key from prompt and parameters."""
-        key_data = f"{prompt}_{kwargs.get('temperature', 0.3)}_{kwargs.get('max_tokens', 2000)}"
-        return hashlib.md5(key_data.encode()).hexdigest()
+    @property
+    def provider_name(self) -> str:
+        return "openai"
+
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self.settings.EMBEDDING_DIMENSION
+
+    # ─── Token counting ───────────────────────────────────────────────
 
     def count_tokens(self, text: str) -> int:
         """
@@ -91,13 +97,15 @@ class OpenAIClient:
         """
         return len(self.encoding.encode(text))
 
+    # ─── Chat completion ──────────────────────────────────────────────
+
     def get_completion(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-        use_cache: bool = True
+        use_cache: bool = True,
     ) -> Optional[str]:
         """
         Get completion from OpenAI with retry logic and caching.
@@ -118,7 +126,7 @@ class OpenAIClient:
             system_prompt = LEGAL_EXPERT_SYSTEM_PROMPT
 
         # Use settings defaults if not specified
-        temperature = temperature or self.settings.OPENAI_TEMPERATURE
+        temperature = temperature if temperature is not None else self.settings.OPENAI_TEMPERATURE
         max_tokens = max_tokens or self.settings.OPENAI_MAX_TOKENS
 
         # Check cache first
@@ -126,59 +134,41 @@ class OpenAIClient:
         if use_cache and cache_key in self._cache:
             return self._cache[cache_key]
 
-        # Retry logic with exponential backoff
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = self.client.chat.completions.create(
-                    model=self.settings.OPENAI_MODEL,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+        # API call with retry
+        def _call():
+            response = self.client.chat.completions.create(
+                model=self._model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return response.choices[0].message.content
 
-                result = response.choices[0].message.content
+        result = self._retry_with_backoff(
+            _call,
+            rate_limit_exceptions=(RateLimitError,),
+            api_exceptions=(APIError,),
+        )
 
-                # Cache the result
-                if use_cache:
-                    self._cache[cache_key] = result
-                    self._save_cache()
+        if result and use_cache:
+            self._cache[cache_key] = result
+            self._save_cache()
 
-                return result
+        return result
 
-            except RateLimitError:
-                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
-                if 'st' in globals():
-                    st.warning(f"⏳ به حد مجاز API رسیدیم. {wait_time} ثانیه صبر کنید...")
-                time.sleep(wait_time)
-
-            except APIError as e:
-                if attempt == max_retries - 1:
-                    if 'st' in globals():
-                        st.error(f"❌ خطا در ارتباط با OpenAI: {str(e)}")
-                    return None
-                time.sleep(2 ** attempt)
-
-            except Exception as e:
-                if 'st' in globals():
-                    st.error(f"❌ خطای غیرمنتظره: {str(e)}")
-                return None
-
-        return None
+    # ─── Structured JSON ──────────────────────────────────────────────
 
     def get_structured_json(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        temperature: float = 0.1
+        temperature: float = 0.1,
     ) -> Optional[Dict[str, Any]]:
         """
         Get structured JSON response using OpenAI's JSON mode.
-
-        Useful for entity extraction and structured data.
 
         Args:
             prompt: User prompt
@@ -193,34 +183,31 @@ class OpenAIClient:
 
         try:
             response = self.client.chat.completions.create(
-                model=self.settings.OPENAI_MODEL,
+                model=self._model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 response_format={"type": "json_object"},
-                temperature=temperature
+                temperature=temperature,
             )
 
             result_text = response.choices[0].message.content
             return json.loads(result_text)
 
         except json.JSONDecodeError as e:
-            if 'st' in globals():
-                st.error(f"❌ خطا در پردازش JSON: {str(e)}")
+            st.error(f"❌ خطا در پردازش JSON: {str(e)}")
             return None
 
         except Exception as e:
-            if 'st' in globals():
-                st.error(f"❌ خطا در دریافت JSON: {str(e)}")
+            st.error(f"❌ خطا در دریافت JSON: {str(e)}")
             return None
+
+    # ─── Embeddings ───────────────────────────────────────────────────
 
     def get_embedding(self, text: str) -> Optional[List[float]]:
         """
         Generate embedding vector for text.
-
-        Used for RAG (Retrieval-Augmented Generation) to find similar
-        legal articles.
 
         Args:
             text: Input text (Persian legal text)
@@ -231,13 +218,12 @@ class OpenAIClient:
         try:
             response = self.client.embeddings.create(
                 model=self.settings.EMBEDDING_MODEL,
-                input=text
+                input=text,
             )
             return response.data[0].embedding
 
         except Exception as e:
-            if 'st' in globals():
-                st.error(f"❌ خطا در تولید embedding: {str(e)}")
+            st.error(f"❌ خطا در تولید embedding: {str(e)}")
             return None
 
     def get_embeddings_batch(self, texts: List[str]) -> Optional[List[List[float]]]:
@@ -256,38 +242,28 @@ class OpenAIClient:
             all_embeddings = []
 
             for i in range(0, len(texts), batch_size):
-                batch = texts[i:i+batch_size]
+                batch = texts[i : i + batch_size]
                 response = self.client.embeddings.create(
                     model=self.settings.EMBEDDING_MODEL,
-                    input=batch
+                    input=batch,
                 )
                 all_embeddings.extend([e.embedding for e in response.data])
 
             return all_embeddings
 
         except Exception as e:
-            if 'st' in globals():
-                st.error(f"❌ خطا در تولید embeddings: {str(e)}")
+            st.error(f"❌ خطا در تولید embeddings: {str(e)}")
             return None
 
-    def clear_cache(self):
-        """Clear the response cache."""
-        self._cache = {}
-        if self._cache_file.exists():
-            self._cache_file.unlink()
 
-
-# Global instance getter
-_client_instance: Optional[OpenAIClient] = None
+# ─── Backward-compatible helper ──────────────────────────────────────
+# Kept so that any stray imports of get_openai_client still work.
 
 def get_openai_client() -> OpenAIClient:
     """
-    Get the global OpenAI client instance.
+    Get an OpenAI client instance.
 
-    Returns:
-        OpenAIClient singleton
+    .. deprecated::
+        Use ``get_llm_client()`` from ``client_factory`` instead.
     """
-    global _client_instance
-    if _client_instance is None:
-        _client_instance = OpenAIClient()
-    return _client_instance
+    return OpenAIClient()

@@ -9,7 +9,6 @@ Author: Master's Thesis Project - Mahsa Mirzaei
 
 from pydantic_settings import BaseSettings
 from typing import Optional
-import os
 
 
 class Settings(BaseSettings):
@@ -21,18 +20,31 @@ class Settings(BaseSettings):
     """
 
     # =================================================================
+    # AI Provider Selection  ("openai" or "gemini")
+    # =================================================================
+    AI_PROVIDER: str = "openai"  # Default provider; override via sidebar or .env
+
+    # =================================================================
     # OpenAI Configuration
     # =================================================================
-    OPENAI_API_KEY: str  # Required: Your OpenAI API key
+    OPENAI_API_KEY: str = ""  # Optional if using Gemini
     OPENAI_MODEL: str = "gpt-4-turbo-preview"  # Default to GPT-4 Turbo for best reasoning
     OPENAI_TEMPERATURE: float = 0.3  # Low temperature for consistent legal reasoning
     OPENAI_MAX_TOKENS: int = 2000  # Maximum tokens per completion
 
     # =================================================================
-    # Embedding Configuration (for RAG)
+    # OpenAI Embedding Configuration (for RAG)
     # =================================================================
     EMBEDDING_MODEL: str = "text-embedding-3-small"  # OpenAI embedding model
     EMBEDDING_DIMENSION: int = 1536  # Dimension of embedding vectors
+
+    # =================================================================
+    # Gemini Configuration (free-tier alternative)
+    # =================================================================
+    GEMINI_API_KEY: str = ""  # Google AI Studio API key
+    GEMINI_MODEL: str = "gemini-2.0-flash"  # Free model: 15 RPM, 1M tokens/day
+    GEMINI_EMBEDDING_MODEL: str = "models/text-embedding-004"  # Gemini embedding model
+    GEMINI_EMBEDDING_DIMENSION: int = 768  # Dimension of Gemini embedding vectors
 
     # =================================================================
     # RAG (Retrieval-Augmented Generation) Configuration

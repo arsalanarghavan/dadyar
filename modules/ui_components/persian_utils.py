@@ -1,14 +1,4 @@
-"""
-Persian Text Utilities - RTL and Formatting Helpers.
-
-Provides utilities for handling Persian text in Streamlit:
-- RTL text wrapping
-- Persian number conversion
-- Date formatting with jdatetime
-- ZWNJ handling
-
-Author: Master's Thesis Project - Mahsa Mirzaei
-"""
+"""Persian Text Utilities — RTL and formatting helpers."""
 
 import jdatetime
 from typing import Optional
@@ -156,26 +146,17 @@ class PersianUtils:
         """
         return f"""
         <div style="
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-right: 4px solid {color};
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-right: 3px solid {color};
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
             direction: rtl;
             text-align: right;
         ">
-            <h3 style="
-                color: #f8fafc;
-                margin-top: 0;
-                margin-bottom: 0.5rem;
-                font-size: 1.25rem;
-            ">{title}</h3>
-            <p style="
-                color: #cbd5e1;
-                margin: 0;
-                line-height: 1.6;
-            ">{content}</p>
+            <div style="color:#a1a1aa; font-size:0.8rem; margin-bottom:0.25rem;">{title}</div>
+            <div style="color:#fafafa; font-size:1rem; font-weight:500;">{content}</div>
         </div>
         """
 
@@ -193,14 +174,15 @@ class PersianUtils:
         """
         return f"""
         <span style="
-            background: {color};
-            color: #f8fafc;
-            padding: 0.25rem 0.75rem;
+            background: {color}22;
+            color: {color};
+            padding: 0.2rem 0.625rem;
             border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 500;
             display: inline-block;
-            margin: 0.25rem;
+            margin: 0.2rem;
+            border: 1px solid {color}44;
         ">{text}</span>
         """
 

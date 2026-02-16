@@ -17,11 +17,10 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 import streamlit as st
 
-from modules.legal_engine.openai_client import get_openai_client
+from modules.legal_engine.client_factory import get_llm_client
 from modules.legal_engine.knowledge_base import get_knowledge_base
 from modules.legal_engine.entity_extractor import CaseEntities
 from config.prompts import (
-    LEGAL_REASONING_PROMPT,
     ARTICLE_APPLICABILITY_PROMPT,
     DEDUCTION_GENERATION_PROMPT
 )
@@ -72,8 +71,8 @@ class ReasoningEngine:
     """
 
     def __init__(self):
-        """Initialize reasoning engine with knowledge base and OpenAI client."""
-        self.client = get_openai_client()
+        """Initialize reasoning engine with knowledge base and LLM client."""
+        self.client = get_llm_client()
         self.kb = get_knowledge_base()
 
     def analyze_case(
@@ -102,7 +101,7 @@ class ReasoningEngine:
         st.info("📚 بازیابی مواد قانونی مرتبط...")
         articles = self.kb.retrieve_relevant_articles(
             query=case_description,
-            top_k=5
+            top_k=3
         )
 
         if not articles:
@@ -124,9 +123,12 @@ class ReasoningEngine:
             )
             reasoning_steps.append(step)
 
-        # Analyze each retrieved article
+        # Analyze each retrieved article (with delay to respect rate limits)
+        import time as _time
         article_analyses = []
         for i, article in enumerate(articles, 1):
+            if i > 1:
+                _time.sleep(2)  # Delay between API calls to avoid rate limits
             with st.expander(f"📜 تحلیل ماده {article['article_number']}", expanded=(i == 1)):
                 analysis = self._analyze_article_applicability(
                     article=article,
@@ -361,7 +363,7 @@ class ReasoningEngine:
         return "\n".join(parts)
 
 
-# Global instance
+# Global instance (reset by client_factory.reset_client() on provider switch)
 _engine_instance: Optional[ReasoningEngine] = None
 
 def get_reasoning_engine() -> ReasoningEngine:

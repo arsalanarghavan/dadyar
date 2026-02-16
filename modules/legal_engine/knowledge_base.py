@@ -2,22 +2,20 @@
 Legal Knowledge Base with RAG (Retrieval-Augmented Generation).
 
 This module manages Iranian Civil Code articles (308-327) about Ghasb,
-providing semantic search capabilities using FAISS vector store and
-OpenAI embeddings.
+providing semantic search capabilities using TF-IDF + cosine similarity
+(local, no API calls needed for embeddings).
 
 Author: Master's Thesis Project - Mahsa Mirzaei
 """
 
 import json
-import pickle
 import numpy as np
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import streamlit as st
-import faiss
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from modules.legal_engine.openai_client import get_openai_client
 from config.settings import get_settings
 
 
@@ -27,30 +25,30 @@ class LegalKnowledgeBase:
 
     Features:
     - Load articles from JSON
-    - Generate embeddings for all articles
-    - FAISS vector store for similarity search
-    - Hybrid search: semantic + keyword matching
-    - Cache embeddings to avoid repeated API calls
+    - TF-IDF local embeddings (no API calls)
+    - Cosine similarity search
+    - Hybrid search: TF-IDF + keyword matching
     """
 
     def __init__(self):
         """Initialize knowledge base and load articles."""
         self.settings = get_settings()
-        self.client = get_openai_client()
 
-        # Paths
-        self.articles_file = Path("data/legal_articles.json")
-        self.embeddings_cache = Path("data/embeddings_cache.pkl")
+        # Paths – anchored to this file's location for portability
+        _project_root = Path(__file__).resolve().parent.parent.parent
+        self.articles_file = _project_root / "data" / "legal_articles.json"
 
         # Load articles
         self.articles = self._load_articles()
         self.article_texts = [self._article_to_text(a) for a in self.articles]
 
-        # Load or generate embeddings
-        self.embeddings = self._load_or_generate_embeddings()
-
-        # Build FAISS index
-        self.index = self._build_faiss_index()
+        # Build TF-IDF model (local, no API)
+        self._vectorizer = TfidfVectorizer(
+            analyzer="char_wb",   # char n-grams work well for Persian
+            ngram_range=(2, 4),
+            max_features=8000,
+        )
+        self._tfidf_matrix = self._vectorizer.fit_transform(self.article_texts)
 
     def _load_articles(self) -> List[Dict[str, Any]]:
         """Load legal articles from JSON file."""
@@ -77,65 +75,6 @@ class LegalKnowledgeBase:
         ]
         return " ".join(parts)
 
-    def _load_or_generate_embeddings(self) -> np.ndarray:
-        """
-        Load embeddings from cache or generate new ones.
-
-        For thesis: This caching strategy significantly reduces API costs
-        and latency during development and demonstrations.
-        """
-        # Try to load from cache
-        if self.embeddings_cache.exists():
-            try:
-                with open(self.embeddings_cache, 'rb') as f:
-                    cached_data = pickle.load(f)
-                    # Verify cache is valid
-                    if len(cached_data) == len(self.articles):
-                        st.success("✅ embeddings از حافظه بارگذاری شدند")
-                        return np.array(cached_data)
-            except Exception as e:
-                st.warning(f"⚠️ خطا در بارگذاری cache: {str(e)}")
-
-        # Generate new embeddings
-        st.info("🔄 در حال تولید embeddings برای مواد قانونی...")
-        progress_bar = st.progress(0)
-
-        embeddings_list = []
-        for i, text in enumerate(self.article_texts):
-            embedding = self.client.get_embedding(text)
-            if embedding:
-                embeddings_list.append(embedding)
-            else:
-                # Fallback: zero vector if embedding fails
-                embeddings_list.append([0.0] * self.settings.EMBEDDING_DIMENSION)
-
-            progress_bar.progress((i + 1) / len(self.article_texts))
-
-        embeddings = np.array(embeddings_list)
-
-        # Cache for future use
-        try:
-            self.embeddings_cache.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.embeddings_cache, 'wb') as f:
-                pickle.dump(embeddings_list, f)
-            st.success("✅ embeddings ذخیره شدند")
-        except Exception as e:
-            st.warning(f"⚠️ خطا در ذخیره cache: {str(e)}")
-
-        return embeddings
-
-    def _build_faiss_index(self) -> faiss.Index:
-        """
-        Build FAISS index for fast similarity search.
-
-        FAISS (Facebook AI Similarity Search) provides efficient
-        nearest neighbor search in high-dimensional spaces.
-        """
-        dimension = self.settings.EMBEDDING_DIMENSION
-        index = faiss.IndexFlatL2(dimension)  # L2 distance
-        index.add(self.embeddings.astype('float32'))
-        return index
-
     def retrieve_relevant_articles(
         self,
         query: str,
@@ -144,58 +83,39 @@ class LegalKnowledgeBase:
         use_hybrid: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Retrieve most relevant articles for a query using RAG.
+        Retrieve most relevant articles for a query using local TF-IDF.
 
-        Args:
-            query: User query (e.g., case description)
-            top_k: Number of articles to retrieve
-            similarity_threshold: Minimum similarity score (0-1)
-            use_hybrid: Use both semantic and keyword matching
-
-        Returns:
-            List of articles with relevance scores
+        No API calls needed — everything runs locally.
         """
         top_k = top_k or self.settings.TOP_K_ARTICLES
         similarity_threshold = similarity_threshold or self.settings.SIMILARITY_THRESHOLD
 
-        # Generate query embedding
-        query_embedding = self.client.get_embedding(query)
-        if not query_embedding:
-            st.error("❌ خطا در تولید embedding برای query")
-            return []
+        # TF-IDF similarity (local, no API)
+        query_vec = self._vectorizer.transform([query])
+        similarities = cosine_similarity(query_vec, self._tfidf_matrix).flatten()
 
-        query_vector = np.array([query_embedding]).astype('float32')
+        # Get top-k indices
+        top_indices = similarities.argsort()[::-1][:top_k]
 
-        # FAISS search
-        distances, indices = self.index.search(query_vector, top_k)
-
-        # Convert distances to similarity scores (cosine similarity)
-        # FAISS returns L2 distances, convert to similarity
         results = []
-        for distance, idx in zip(distances[0], indices[0]):
+        for idx in top_indices:
             article = self.articles[idx].copy()
-
-            # Calculate cosine similarity
-            similarity = 1 / (1 + distance)  # Simple conversion
+            similarity = float(similarities[idx])
 
             # Keyword matching bonus (hybrid approach)
             if use_hybrid:
                 keyword_score = self._keyword_match_score(query, article)
-                # Combine semantic and keyword scores
                 final_score = 0.7 * similarity + 0.3 * keyword_score
             else:
                 final_score = similarity
 
-            article['relevance_score'] = float(final_score)
-            article['similarity'] = float(similarity)
+            article['relevance_score'] = final_score
+            article['similarity'] = similarity
 
-            # Only include if above threshold
             if final_score >= similarity_threshold:
                 results.append(article)
 
-        # Sort by relevance score
         results.sort(key=lambda x: x['relevance_score'], reverse=True)
-
         return results
 
     def _keyword_match_score(self, query: str, article: Dict[str, Any]) -> float:

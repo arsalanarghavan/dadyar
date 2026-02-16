@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 import streamlit as st
 from hazm import Normalizer
 
-from modules.legal_engine.openai_client import get_openai_client
+from modules.legal_engine.client_factory import get_llm_client
 from config.prompts import ENTITY_EXTRACTION_PROMPT
 
 
@@ -48,8 +48,8 @@ class EntityExtractor:
     """
 
     def __init__(self):
-        """Initialize extractor with OpenAI client and Persian normalizer."""
-        self.client = get_openai_client()
+        """Initialize extractor with LLM client and Persian normalizer."""
+        self.client = get_llm_client()
         self.normalizer = Normalizer()
 
     def extract(self, case_description: str) -> Optional[CaseEntities]:
@@ -166,7 +166,7 @@ class EntityExtractor:
         return "\n\n".join(parts)
 
 
-# Global instance
+# Global instance (reset by client_factory.reset_client() on provider switch)
 _extractor_instance: Optional[EntityExtractor] = None
 
 def get_entity_extractor() -> EntityExtractor:

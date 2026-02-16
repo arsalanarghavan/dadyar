@@ -16,7 +16,7 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass
 import streamlit as st
 
-from modules.legal_engine.openai_client import get_openai_client
+from modules.legal_engine.client_factory import get_llm_client
 from modules.legal_engine.reasoning_engine import ReasoningResult
 from config.prompts import VERDICT_GENERATION_PROMPT
 
@@ -42,8 +42,8 @@ class VerdictGenerator:
     """
 
     def __init__(self):
-        """Initialize verdict generator with OpenAI client."""
-        self.client = get_openai_client()
+        """Initialize verdict generator with LLM client."""
+        self.client = get_llm_client()
 
     def generate_verdict(self, reasoning_result: ReasoningResult) -> Optional[Verdict]:
         """
@@ -274,7 +274,7 @@ class VerdictGenerator:
         return "\n".join(parts)
 
 
-# Global instance
+# Global instance (reset by client_factory.reset_client() on provider switch)
 _generator_instance: Optional[VerdictGenerator] = None
 
 def get_verdict_generator() -> VerdictGenerator:

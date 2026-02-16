@@ -1,54 +1,47 @@
 @echo off
-REM ──────────────────────────────────────────────
-REM Build script for دادیار هوشمند (Windows)
-REM ──────────────────────────────────────────────
-REM
-REM Prerequisites:
-REM   1. Python 3.12 installed
-REM   2. Run from project root (where app.py is)
-REM   3. Internet connection for first-time setup
-REM ──────────────────────────────────────────────
+chcp 65001 >nul
+setlocal
+cd /d "%~dp0"
 
-echo.
-echo Building dadyar hooshmand ...
-echo.
+title ساخت نسخه ویندوز — دادیار هوشمند
 
-REM Create venv if not exists
-if not exist "venv" (
-    echo Creating virtual environment...
-    python -m venv venv
+:: Require venv (run install_and_run.bat once first, or create venv manually)
+if not exist "venv\Scripts\activate.bat" (
+    echo [خطا] ابتدا install_and_run.bat را یک بار اجرا کنید تا venv و وابستگی‌ها نصب شوند.
+    pause
+    exit /b 1
 )
 
-REM Activate venv
 call venv\Scripts\activate.bat
 
-REM Install dependencies
-echo Installing dependencies...
-pip install -r requirements.txt -q 2>nul
-pip install pyinstaller -q 2>nul
+echo نصب PyInstaller...
+pip install -q pyinstaller
+if errorlevel 1 (
+    echo [خطا] نصب PyInstaller ناموفق بود.
+    pause
+    exit /b 1
+)
 
-REM Clean previous build
-if exist "build" rmdir /s /q build
-if exist "dist" rmdir /s /q dist
-
-REM Build
 echo.
-echo Running PyInstaller...
-pyinstaller dadyar.spec --noconfirm
+echo در حال ساخت با PyInstaller...
+if exist build rmdir /s /q build
+if exist dist rmdir /s /q dist
 
-REM Check result
+pyinstaller dadyar.spec --noconfirm
+if errorlevel 1 (
+    echo [خطا] ساخت ناموفق بود.
+    pause
+    exit /b 1
+)
+
 if exist "dist\dadyar\dadyar.exe" (
     echo.
-    echo =============================================
-    echo   Build successful!
-    echo   Output: dist\dadyar\
+    echo ساخت با موفقیت انجام شد.
+    echo خروجی: dist\dadyar\
+    echo برای توزیع، پوشه dist\dadyar را به‌صورت zip منتشر کنید.
     echo.
-    echo   To run: dist\dadyar\dadyar.exe
-    echo   To distribute: zip the dist\dadyar\ folder
-    echo =============================================
 ) else (
-    echo.
-    echo Build failed!
+    echo [خطا] فایل exe ساخته نشد.
     exit /b 1
 )
 

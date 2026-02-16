@@ -1,99 +1,80 @@
 @echo off
-chcp 65001 >nul 2>&1
-REM ══════════════════════════════════════════════════════════════════
-REM  Dadyar – Judicial Decision-Making Simulator
-REM  Installer ^& Launcher Script (Windows)
-REM ══════════════════════════════════════════════════════════════════
+chcp 65001 >nul
+setlocal
+cd /d "%~dp0"
 
-setlocal enabledelayedexpansion
+title دادیار هوشمند
 
-set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%\.."
-set "VENV_DIR=%PROJECT_ROOT%\.venv"
-set "REQUIREMENTS=%SCRIPT_DIR%requirements.txt"
-set "ENV_FILE=%PROJECT_ROOT%\.env"
-set "ENV_EXAMPLE=%PROJECT_ROOT%\.env.example"
-set "APP_FILE=%SCRIPT_DIR%app.py"
-
-echo ══════════════════════════════════════════════════════════════
-echo   Dadyar – Judicial Decision-Making Simulator
-echo ══════════════════════════════════════════════════════════════
-echo.
-
-REM ─── 1. Check Python ──────────────────────────────────────────
-echo [1/5] Checking Python...
-where python >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ERROR: Python not found! Please install Python 3.9+
-    pause
-    exit /b 1
+:: Check for Python (try py launcher first, then python)
+set PYEXE=
+where py >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "delims=" %%i in ('py -3 -c "import sys; print(sys.executable)" 2nul') do set PYEXE=%%i
 )
-
-for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PY_VERSION=%%v
-echo OK: Python %PY_VERSION%
-
-REM ─── 2. Create virtual environment ────────────────────────────
-echo [2/5] Setting up virtual environment...
-if not exist "%VENV_DIR%\Scripts\activate.bat" (
-    python -m venv "%VENV_DIR%"
-    echo OK: Virtual environment created
-) else (
-    echo OK: Virtual environment already exists
-)
-
-call "%VENV_DIR%\Scripts\activate.bat"
-
-REM ─── 3. Upgrade pip ───────────────────────────────────────────
-echo [3/5] Upgrading pip...
-pip install --upgrade pip setuptools wheel --quiet >nul 2>&1
-echo OK: pip upgraded
-
-REM ─── 4. Install dependencies ──────────────────────────────────
-echo [4/5] Installing dependencies...
-if not exist "%REQUIREMENTS%" (
-    echo ERROR: requirements.txt not found!
-    pause
-    exit /b 1
-)
-
-pip install -r "%REQUIREMENTS%" --quiet
-echo OK: All dependencies installed
-
-REM ─── 5. Setup .env file ───────────────────────────────────────
-echo [5/5] Checking configuration...
-if not exist "%ENV_FILE%" (
-    if exist "%ENV_EXAMPLE%" (
-        copy "%ENV_EXAMPLE%" "%ENV_FILE%" >nul
-        echo WARNING: Created .env from .env.example – please add your API key
-        echo   Edit: %ENV_FILE%
-    ) else (
-        (
-            echo AI_PROVIDER=gemini
-            echo OPENAI_API_KEY=sk-your-api-key-here
-            echo OPENAI_MODEL=gpt-4-turbo-preview
-            echo OPENAI_TEMPERATURE=0.3
-            echo OPENAI_MAX_TOKENS=2000
-            echo EMBEDDING_MODEL=text-embedding-3-small
-            echo EMBEDDING_DIMENSION=1536
-            echo GEMINI_API_KEY=your-gemini-api-key-here
-            echo GEMINI_MODEL=gemini-2.0-flash
-            echo GEMINI_EMBEDDING_MODEL=models/text-embedding-004
-            echo GEMINI_EMBEDDING_DIMENSION=768
-        ) > "%ENV_FILE%"
-        echo WARNING: Created default .env – please add your API key
+if not defined PYEXE (
+    where python >nul 2>&1
+    if %errorlevel% equ 0 (
+        for /f "delims=" %%i in ('python -c "import sys; print(sys.executable)" 2nul') do set PYEXE=%%i
     )
-) else (
-    echo OK: .env already configured
 )
 
-REM ─── Launch ────────────────────────────────────────────────────
-echo.
-echo ══════════════════════════════════════════════════════════════
-echo   Setup complete! Launching the application...
-echo ══════════════════════════════════════════════════════════════
+if not defined PYEXE (
+    echo.
+    echo [خطا] پایتون یافت نشد.
+    echo لطفاً پایتون 3.10 یا بالاتر را از https://www.python.org/downloads/ نصب کنید.
+    echo هنگام نصب گزینه "Add Python to PATH" را فعال کنید.
+    echo.
+    pause
+    exit /b 1
+)
+
+echo پایتون: %PYEXE%
 echo.
 
-cd /d "%SCRIPT_DIR%"
-streamlit run "%APP_FILE%" --server.headless true
+:: Create venv if missing
+if not exist "venv\Scripts\python.exe" (
+    echo در حال ایجاد محیط مجازی...
+    "%PYEXE%" -m venv venv
+    if errorlevel 1 (
+        echo [خطا] ایجاد venv ناموفق بود.
+        pause
+        exit /b 1
+    )
+    echo محیط مجازی ایجاد شد.
+    echo.
+)
+
+:: Install dependencies if needed (quick check: streamlit in venv)
+venv\Scripts\python.exe -c "import streamlit" 2>nul
+if errorlevel 1 (
+    echo در حال نصب کتابخانه‌ها...
+    venv\Scripts\pip install -q -r requirements.txt
+    if errorlevel 1 (
+        echo [خطا] نصب وابستگی‌ها ناموفق بود.
+        pause
+        exit /b 1
+    )
+    echo نصب کتابخانه‌ها انجام شد.
+    echo.
+) else (
+    echo وابستگی‌ها از قبل نصب شده‌اند.
+    echo.
+)
+
+:: Copy .env from example if missing
+if not exist ".env" (
+    if exist ".env.example" (
+        copy /y ".env.example" ".env" >nul
+        echo فایل .env از .env.example ساخته شد.
+        echo لطفاً کلید API را در فایل .env تنظیم کنید.
+        echo.
+    )
+)
+
+:: Run the app
+echo در حال اجرای دادیار هوشمند...
+echo برای خروج Ctrl+C بزنید.
+echo.
+venv\Scripts\python.exe launcher.py
 
 pause
